@@ -1,0 +1,207 @@
+import sys
+import os
+import platform
+import getopt
+import shutil
+import re
+import time
+import datetime
+
+def Help():
+	print('-p protocalName -f Field -c Compare char -v value')
+
+def Argv():
+	global Protocal,Field,Compare,Value
+	shortArgs='p:f:c:v:'
+	opts,args=getopt.getopt(sys.argv[1:],shortArgs,["help"])
+	for opt,value in opts:
+		if opt=='-p':
+			Protocal=value
+		elif opt=='-f':
+			Field=value
+		elif opt=='-c':
+			Compare=value
+		elif opt=='-v':
+			Value=int(value)
+		elif opt=='--help':
+			Help()
+			sys.exit()
+
+def HandleAllReady(lines):
+	global allGame,normal1v1,normal2v2,relive1v1,relive2v2,bun
+	for line in lines :
+		searchAllReady=patternAllReady.search(line)
+		if searchAllReady:			
+			allGame=allGame+1
+			patthernRoleID=re.compile('\[ullRoleId\]: \d+')
+			roleIDResult=re.search(patthernRoleID,line)
+			#print(roleIDResult.group())
+			roleID=re.split(': ',roleIDResult.group())[1]
+			if(int(roleID)>10000):
+				gameType=re.search('\[bGameType\]: 0x\d+',line).group()
+				gameTypeID=re.split(': 0x0',gameType)[1]
+				#print(gameTypeID)
+				roleNumObject=re.search('\[iRoleNum\]: \d+',line).group()
+				roleNum=re.split(': ',roleNumObject)[1]
+				#print(roleNum)
+				if int(gameTypeID)==1:
+					if int(roleNum)==2:
+						normal1v1=normal1v1+1
+					elif int(roleNum)==4:
+						normal2v2=normal2v2+1
+					else:
+						print("Invilid Normal: "+roleNum)
+				elif int(gameTypeID)==2:
+					if int(roleNum)==2:
+						relive1v1=relive1v1+1
+					elif int(roleNum)==4:
+						relive2v2=relive2v2+1
+					else:
+						print("Invilid Relive: "+roleNum)
+				elif int(gameTypeID)==3:
+					bun=bun+1
+				else:
+					print("Invilid Game: "+gameTypeID)
+	
+def HandleEndReady(lines):
+	global AIWin,AILose,AITie,AICount
+	AICount=0
+	for line in lines :
+		searchEndNtf=patternEnd.search(line)
+		if searchEndNtf:
+			patthernRoleID=re.compile('\[ullRoleId\]: \d+')
+			roleIDResult=re.search(patthernRoleID,line)
+			#print(roleIDResult.group())
+			roleID=re.split(': ',roleIDResult.group())[1]
+			#print(roleID)
+			if(int(roleID)<10000):
+				AICount+=1
+				win=re.search('\[bWin\]: 0x\d+',line).group()
+				winNum=int(re.split(': 0x0',gameType)[1])
+				if(winNum==1):
+					AIWin=AIWin+1
+				elif(winNum==2):
+					AILose+=1
+				elif(winNum==0):
+					AITie+=1
+				else:
+					print("Error")	
+
+def HandleMatch(lines):
+	global Protocal,Field,Compare,Value
+	resultCount=0
+	patternProtocal=re.compile(r'QQTProto.'+Protocal)
+	for line in lines:
+		searchProtocl=patternProtocal.search(line)
+		if searchProtocl: 
+			fieldValue=re.search('\['+ Field +'\]: (0x)?\d+',line)
+			ValueNum=int(re.split(': ',fieldValue.group())[1])
+			if Compare=='<':
+				if ValueNum<Value:
+					resultCount+=1
+			elif Compare=='>':
+				if ValueNum>Value:
+					resultCount+=1
+			elif Compare=='==':
+				if ValueNum==Value:
+					resultCount+=1
+	return resultCount
+
+
+					
+global startTime
+startTime=datetime.datetime.now();
+
+
+'''global endTime
+global allGame
+global normal1v1
+global normal2v2
+global relive1v1
+global relive2v2
+global bun
+
+allGame=0
+normal1v1=0
+normal2v2=0
+relive1v1=0
+relive2v2=0
+bun=0
+
+global AIWin
+AIWin=0
+
+global AILose
+AILose=0
+
+global AITie
+AITie=0
+
+global logNum
+logNum=0
+
+LogDir="/data/home/user00/log"
+patternFile=re.compile(r'\.log\.?\d*$')
+
+patternAllReady=re.compile(r'QQTProto.GameIsAllReadyNtf')
+
+patternEnd=re.compile(r'QQTProto.GameEndNtf')
+
+
+for root,listDir,listFiles in os.walk(LogDir,False):
+	for f in listFiles:
+		#print(f)
+		matchFile=patternFile.search(f)
+		if matchFile:
+			logNum=logNum+1
+			absFile=LogDir+"/"+os.path.basename(f)
+			#print(absFile)
+			file=open(absFile);
+			while 1:
+				lines=file.readlines(10000);
+				if not lines:
+					break
+				#HandleAllReady(lines)
+				HandleEndReady(lines)
+				
+print("AllGame: %d"%allGame)
+print("1V1 Normal: %d"%normal1v1)
+print("2V2 Normal: %d"%normal2v2)
+print("1V1 Relive: %d"%relive1v1)
+print("2V2 Relive: %d"%relive2v2)
+print("Bun: %d"%bun)
+print("LogNum: %d"%logNum)
+
+print("AI win %d"%AIWin)
+print("AI lose %d"%AILose)
+print("AI Tie %d"%AITie)
+
+print("AI Count : %d"%AICount)
+			#break
+
+print(startTime)
+endTime=datetime.datetime.now()
+print(endTime)			
+					#print(line)
+print(Protocal,Field,Compare,Value)
+
+			
+'''
+Argv()
+
+LogDir='/data/home/user00/log'
+patternFile=re.compile(r'\.log\.?\d*$')
+Count=0
+
+for root,listDir,listFiles in os.walk(LogDir,False):
+	for f in listFiles:
+		matchFile=patternFile.search(f)
+		if matchFile:
+			absFile=LogDir+"/"+os.path.basename(f)
+			file=open(absFile)
+			while 1:
+				lines=file.readlines(10000)
+				if not lines:
+					break
+				Count  += HandleMatch(lines)
+print(Protocal+': The count of'+Field+' which '+Compare+' %d'%Value+' is %d'%Count)
